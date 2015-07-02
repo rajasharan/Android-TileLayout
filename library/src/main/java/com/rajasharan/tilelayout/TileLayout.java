@@ -2,27 +2,31 @@ package com.rajasharan.tilelayout;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.rajasharan.tilelayout.adapters.api.AsyncAdapter;
 
 /**
  * Created by rajasharan on 7/2/15.
  */
 public class TileLayout extends ViewGroup {
     private static final String TAG = "TileLayout";
+    private static final String NEW_TILE = "NEW-TILE";
 
     private int mTileWidth;
     private int mTileHeight;
-    private Async2DAdapter mAdapter;
-    private Map<Point, View> mTileViews;
+    private AsyncAdapter<Point> mAdapter;
+    //private List<View> mTileViews;
     private Point mOrigin;
+    private Point mOriginTouchDown;
+    private Point mStartTouch;
+    private boolean mScreenTilesRequested;
 
     public TileLayout(Context context) {
         this(context, null);
@@ -34,46 +38,44 @@ public class TileLayout extends ViewGroup {
 
     public TileLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init(context);
+        init();
     }
 
-    private void init(Context context) {
-        mAdapter = new SimpleTileAdapter(context);
-        mTileWidth = mAdapter.getWidth();
-        mTileHeight = mAdapter.getHeight();
+    private void init() {
         mOrigin = new Point(0, 0);
-        mTileViews = new HashMap<>();
-
-        mAdapter.setOnViewDataAvailableListener(new Async2DAdapter.OnViewDataAvailableListener() {
-            @Override
-            public void OnViewDataAvailable(final int dx, final int dy, final View view) {
-                post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mTileViews.put(new Point(dx, dy), view);
-                        view.layout(mOrigin.x+dx, mOrigin.y+dy, mOrigin.x + dx + mTileWidth, mOrigin.y + dy + mTileHeight);
-                        invalidate(mOrigin.x+dx, mOrigin.y+dy, mOrigin.x+dx+mTileWidth, mOrigin.y+dy+mTileHeight);
-                    }
-                });
-            }
-        });
+        mStartTouch = null;
+        mScreenTilesRequested = false;
+        //mTileViews = new ArrayList<>();
     }
 
-    private void requestScreenTiles(int width, int height) {
-        int x = mOrigin.x;
-        int y = mOrigin.y;
+    /**
+     * request tiles from adapter to fill up the screen bounded by (left,top - right,bottom)
+     */
+    private void requestScreenTiles(int left, int top, int right, int bottom) {
+        if (mScreenTilesRequested) {
+            return;
+        }
 
-        while (y < height) {
-            while (x < width) {
+        int x = left;
+        int y = top;
+        //removeAllViews();
+        //mTileViews.clear();
+
+        while (y < bottom) {
+            while (x < right) {
                 Point p = new Point(x, y);
-                if (mTileViews.get(p) == null) {
-                    mTileViews.put(new Point(x, y), mAdapter.getView(x, y));
-                }
+                View tile = mAdapter.getView(p);
+                tile.setTag(p);
+                //Log.d(TAG, p.toString() + " -> " + tile.toString());
+                addView(tile);
+                //mTileViews.add(tile);
                 x = x + mTileWidth;
             }
-            x = mOrigin.x;
+            x = left;
             y = y + mTileHeight;
         }
+        mScreenTilesRequested = true;
+        Log.d(TAG, "requestScreenTiles: getChildCount(): " + getChildCount());
     }
 
     @Override
@@ -85,9 +87,13 @@ public class TileLayout extends ViewGroup {
         height = Math.max(height, getSuggestedMinimumHeight());
 
         setMeasuredDimension(width, height);
-        requestScreenTiles(width, height);
+        requestScreenTiles(0, 0, width, height);
 
-        for(View view: mTileViews.values()) {
+        Log.d(TAG, "onMeasure: getChildCount(): " + getChildCount());
+
+        for (int i=0; i<getChildCount(); i++) {
+            View view = getChildAt(i);
+        //for(View view: mTileViews) {
             view.measure(MeasureSpec.makeMeasureSpec(mTileWidth, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(mTileHeight, MeasureSpec.EXACTLY));
         }
@@ -95,17 +101,172 @@ public class TileLayout extends ViewGroup {
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        requestScreenTiles(getMeasuredWidth(), getMeasuredHeight());
-        for (Point p: mTileViews.keySet()) {
-            View view = mTileViews.get(p);
+        layoutTiles();
+        //invalidate();
+        Log.d(TAG, this.toString());
+    }
+
+    private void layoutTiles() {
+        Log.d(TAG, "onLayout: getChildCount(): " + getChildCount());
+
+        for (int i=0; i<getChildCount(); i++) {
+            View view = getChildAt(i);
+        //for (View view: mTileViews) {
+            Point p = (Point) view.getTag();
             view.layout(p.x, p.y, p.x+mTileWidth, p.y+mTileHeight);
+            //Log.d(TAG, view.toString());
         }
     }
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
-        for (View view: mTileViews.values()) {
+        Log.d(TAG, "dispatchDraw: getChildCount(): " + getChildCount());
+
+        //super.dispatchDraw(canvas);
+        for (int i=0; i<getChildCount(); i++) {
+            View view = getChildAt(i);
+            Point p = (Point) view.getTag();
+            int savepoint = canvas.save();
+            Rect r = new Rect(p.x, p.y, p.x+mTileWidth, p.y+mTileHeight);
+            boolean clipped = canvas.clipRect(r);
             view.draw(canvas);
+            canvas.restoreToCount(savepoint);
+            Log.d(TAG, String.format("dispatchDraw: clippedRect: %s, Rect: %s", clipped, r));
         }
+        /*for (View view: mTileViews) {
+            view.draw(canvas);
+        }*/
+    }
+
+    /**
+     * Implement and add a custom AsyncAdapter to this layout. {@link Point} is used as tag.
+     * The async adapter provides the required views to this layout.
+     *
+     * @param adapter the custom implementation of AsyncAdapter
+     */
+    public void setAsyncAdapter(AsyncAdapter<Point> adapter) {
+        mAdapter = adapter;
+        mTileWidth = mAdapter.getWidth();
+        mTileHeight = mAdapter.getHeight();
+
+        mAdapter.setOnViewAvailableListener(new AsyncAdapter.OnViewAvailableListener<Point>() {
+            @Override
+            public void OnViewAvailable(final Point tag, final View view) {
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        insertTileAtPoint(view, tag);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * insert tiles at given point (left, top) and kick off layout/invalidation cycle only for the given tile
+     * @param child the tile to be added to the layout hierarchy
+     */
+    private void insertTileAtPoint(View child, Point point) {
+        child.measure(MeasureSpec.makeMeasureSpec(mTileWidth, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(mTileHeight, MeasureSpec.EXACTLY));
+
+        child.layout(point.x, point.y, point.x+mTileWidth, point.y+mTileHeight);
+        replaceTileAtPoint(child, point);
+
+        //invalidate(point.x, point.y, point.x + mTileWidth, point.y + mTileHeight);
+        //Log.d(NEW_TILE, child.toString());
+    }
+
+    private void replaceTileAtPoint(View tile, Point point) {
+        View view = null;
+
+        for (int i=0; i<getChildCount(); i++) {
+            view = findViewWithTag(point);
+            if (view != null) {
+                break;
+            }
+        }
+        if (view != null) {
+            removeView(view);
+        }
+        tile.setTag(point);
+        addView(tile);
+
+        /*for (int i=0; i<mTileViews.size(); i++) {
+            view = mTileViews.get(i);
+            Point p = (Point) view.getTag();
+            if (p.equals(point)) {
+                break;
+            }
+        }
+
+        if (view != null) {
+            mTileViews.remove(view);
+        }*/
+
+        //tile.setTag(point);
+        //mTileViews.add(tile);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                mStartTouch = new Point(x, y);
+                mOriginTouchDown = new Point(mOrigin);
+                break;
+
+            case MotionEvent.ACTION_MOVE:
+                int dx = x - mStartTouch.x;
+                int dy = y - mStartTouch.y;
+
+                if (dx <= mTileWidth/2) dx = 0;
+                else if (dx > mTileWidth/2) dx = mTileWidth;
+
+                if (dy <= mTileHeight/2) dy = 0;
+                else if (dy > mTileHeight/2) dy = mTileHeight;
+
+                mOrigin.x = mOriginTouchDown.x + dx;
+                mOrigin.y = mOriginTouchDown.y + dy;
+
+                relayoutTiles();
+                break;
+
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                int dx1 = x - mStartTouch.x;
+                int dy1 = y - mStartTouch.y;
+                addNewTiles(dx1, dy1);
+                removeOldTiles(dx1, dy1);
+                break;
+        }
+        Log.d(TAG, mOrigin.toString());
+        return false;
+    }
+
+    private void relayoutTiles() {
+        requestScreenTiles(-mTileWidth, -mTileHeight, getWidth()-mTileWidth, getHeight()-mTileHeight);
+        layoutTiles();
+        invalidate();
+    }
+
+    private void addNewTiles(int dx, int dy) {
+        if (dx > 0) {
+
+        } else if (dx < 0) {
+
+        }
+
+        if (dy > 0) {
+
+        } else if (dy < 0) {
+
+        }
+    }
+
+    private void removeOldTiles(int dx, int dy) {
+
     }
 }
