@@ -82,6 +82,22 @@ public abstract View getViewInBackground(T tag)
 public void setOnViewAvailableListener(OnViewAvailableListener<T> listener) {
     mListener = listener;
 }
+
+/**
+ * Listener callback interface when View is available.
+ */
+public interface OnViewAvailableListener<T> {
+    /**
+     * This method is invoked when the newly created view is available.
+     * <br>
+     * <b>Note: </b> This method is inoked on non-UI background thread.
+     * Use post(Runnable) to interact with UI thread.
+     *
+     * @param tag view's identifier in your data-model
+     * @param view the newly created/available view.
+     */
+    void OnViewAvailable(final T tag, final View view);
+}
 ```
 
 ## TODO
