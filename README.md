@@ -31,18 +31,12 @@ protected void onCreate(Bundle savedInstanceState) {
 </com.rajasharan.tilelayout.TileLayout>
 ```
 
-## AsyncAdapter &lt;T&gt; API
+## AsyncAdapter&lt;T&gt; API
 [AsyncAdapter](/library/src/main/java/com/rajasharan/tilelayout/adapters/api/AsyncAdapter.java)
 provides API to retrieve Views in background represented by tags.
 For eg: to retrieve views in a 2D surface you can tag the properties of the View from your data-model.
 For reference implementation see [SimpleTileAdapter.java](/library/src/main/java/com/rajasharan/tilelayout/adapters/SimpleTileAdapter.java)
 ```java
-
-/**
- * Default constructor.
- * But remember to call <b>setOnViewAvailableListener(...)</b>
- */
-public AsyncAdapter()
 
 /**
  * @return width of the view
@@ -58,7 +52,7 @@ public abstract int getHeight()
  * Returns the View represented by tag in your data-model.
  *
  * @param tag view's identifier tag from your data-model.
- * @return the default view is returned and a message sent to Adapter-Thread to work on real view
+ * @return the default view is immediately returned and a message sent to Adapter-Thread to work on real view
  */
 public final View getView(T tag)
 

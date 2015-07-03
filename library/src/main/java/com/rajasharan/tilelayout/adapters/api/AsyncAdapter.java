@@ -26,7 +26,7 @@ public abstract class AsyncAdapter<T> implements Handler.Callback {
      * Default constructor.
      * But remember to call <b>setOnViewAvailableListener(...)</b>
      */
-    public AsyncAdapter() {
+    protected AsyncAdapter() {
         this(null, 0);
     }
 
@@ -34,7 +34,7 @@ public abstract class AsyncAdapter<T> implements Handler.Callback {
      *
      * @param listener callback listener to be called when new View is available
      */
-    public AsyncAdapter(OnViewAvailableListener<T> listener) {
+    protected AsyncAdapter(OnViewAvailableListener<T> listener) {
         this(listener, 0);
     }
 
@@ -62,7 +62,7 @@ public abstract class AsyncAdapter<T> implements Handler.Callback {
      * Returns the View represented by tag in your data-model.
      *
      * @param tag view's identifier tag from your data-model.
-     * @return the default view is returned and a message sent to Adapter-Thread to work on real view
+     * @return the default view is immediately returned and a message sent to Adapter-Thread to work on real view
      */
     public final View getView(T tag) {
         mHandler.sendMessageDelayed(mHandler.obtainMessage(WHAT_GET_VIEW, tag),
