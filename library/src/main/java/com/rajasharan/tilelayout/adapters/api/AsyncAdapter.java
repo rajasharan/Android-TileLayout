@@ -17,10 +17,10 @@ import android.view.View;
 public abstract class AsyncAdapter<T> implements Handler.Callback {
     private static final String THREAD = "Adapter-Thread";
     private static final int WHAT_GET_VIEW = 0;
-    private static int SIMULATION_DELAY_MILLIS;
+    private static int DELAY;
 
     private Handler mHandler;
-    private OnViewAvailableListener mListener;
+    private OnViewAvailableListener<T> mListener;
 
     /**
      * Default constructor.
@@ -42,7 +42,7 @@ public abstract class AsyncAdapter<T> implements Handler.Callback {
         HandlerThread thread = new HandlerThread(THREAD);
         thread.start();
         mHandler = new Handler(thread.getLooper(), this);
-        SIMULATION_DELAY_MILLIS = delay;
+        DELAY = delay;
         mListener = listener;
     }
 
@@ -66,7 +66,7 @@ public abstract class AsyncAdapter<T> implements Handler.Callback {
      */
     public final View getView(T tag) {
         mHandler.sendMessageDelayed(mHandler.obtainMessage(WHAT_GET_VIEW, tag),
-                SIMULATION_DELAY_MILLIS + (long)(SIMULATION_DELAY_MILLIS * Math.random()));
+                DELAY + (long)(DELAY * Math.random()));
 
         return getDefaultView(tag);
     }
