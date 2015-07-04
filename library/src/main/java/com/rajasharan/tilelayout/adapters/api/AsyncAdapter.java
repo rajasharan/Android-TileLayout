@@ -65,10 +65,11 @@ public abstract class AsyncAdapter<T> implements Handler.Callback {
      * @return the default view is immediately returned and a message sent to Adapter-Thread to work on real view
      */
     public final View getView(T tag) {
-        mHandler.sendMessageDelayed(mHandler.obtainMessage(WHAT_GET_VIEW, tag),
-                DELAY + (long)(DELAY * Math.random()));
+        mHandler.sendMessageDelayed(mHandler.obtainMessage(WHAT_GET_VIEW, tag), DELAY+(long)(DELAY*Math.random()));
 
-        return getDefaultView(tag);
+        View view = getDefaultView(tag);
+        view.setTag(tag);
+        return view;
     }
 
     /**

@@ -57,8 +57,6 @@ public class SimpleTileAdapter extends AsyncAdapter<Point> {
      * dummy Tile representation for SimpleTileAdapter. Displays tile with X or SKY_BLUE color.
      */
     private static class TileView extends View {
-        private static final String TAG = "TileView";
-        private static final String LOADING = "loading";
         private static final int SKY_BLUE = Color.rgb(135, 206, 250);
         private Paint mBorderPaint;
         private TextPaint mTextPaint;
