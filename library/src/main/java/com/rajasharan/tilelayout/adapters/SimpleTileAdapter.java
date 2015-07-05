@@ -80,7 +80,7 @@ public class SimpleTileAdapter extends AsyncAdapter<Point> {
             }
             else {
                 mHascode = 31 * x + y;
-                mScore = (mHascode/3) % 255;
+                mScore = (Math.abs(mHascode)/3) % 255;
             }
         }
 

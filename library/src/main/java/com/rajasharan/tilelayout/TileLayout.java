@@ -51,6 +51,23 @@ public class TileLayout extends ViewGroup {
         mOffscreenViews = new ArrayList<>();
     }
 
+    private void measureAndLayoutTile(View child, Point tag) {
+        child.measure(MeasureSpec.makeMeasureSpec(mTileWidth, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(mTileHeight, MeasureSpec.EXACTLY));
+
+        int l = tag.x + mOrigin.x;
+        int t = tag.y + mOrigin.y;
+
+        child.layout(l, t, l+mTileWidth, t+mTileHeight);
+    }
+
+    private void invalidateTile(View child, Point tag) {
+        int l = tag.x + mOrigin.x;
+        int t = tag.y + mOrigin.y;
+
+        invalidate(l, t, l+mTileHeight, t+mTileHeight);
+    }
+
     /**
      * request tiles from adapter to fill up the screen bounded by (left,top - right,bottom)
      */
@@ -58,14 +75,19 @@ public class TileLayout extends ViewGroup {
         if (mScreenTilesRequested) {
             return;
         }
+        left = left - mOrigin.x;
+        top = left - mOrigin.y;
+        right = right - mOrigin.x;
+        bottom = bottom - mOrigin.y;
+
         int x = left;
         int y = top;
         //mTileViews.clear();
-        int i=0;
         while (y < bottom) {
             while (x < right) {
                 Point p = new Point(x, y);
                 View tile = mAdapter.getView(p);
+                measureAndLayoutTile(tile, p);
                 mTileViews.add(tile);
                 x = x + mTileWidth;
             }
@@ -73,7 +95,7 @@ public class TileLayout extends ViewGroup {
             y = y + mTileHeight;
         }
         mScreenTilesRequested = true;
-        Log.d(TAG, "requestScreenTiles: getChildCount(): " + getChildCount());
+        //Log.d(TAG, "requestScreenTiles: getChildCount(): " + getChildCount());
     }
 
     @Override
@@ -86,31 +108,6 @@ public class TileLayout extends ViewGroup {
 
         setMeasuredDimension(width, height);
         requestScreenTiles(0, 0, width, height);
-
-        //Log.d(TAG, "onMeasure: getChildCount(): " + getChildCount());
-
-        for(View view: mTileViews) {
-            view.measure(MeasureSpec.makeMeasureSpec(mTileWidth, MeasureSpec.EXACTLY),
-                    MeasureSpec.makeMeasureSpec(mTileHeight, MeasureSpec.EXACTLY));
-        }
-    }
-
-    @Override
-    protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        if (!changed) {
-            return;
-        }
-        layoutTiles();
-        //Log.d(TAG, String.format("onLayout(%s): %s", changed, this.toString()));
-    }
-
-    private void layoutTiles() {
-        //Log.d(TAG, "layoutTiles: getChildCount(): " + getChildCount());
-        for (View view: mTileViews) {
-            Point p = (Point) view.getTag();
-            view.layout(p.x, p.y, p.x+mTileWidth, p.y+mTileHeight);
-            //Log.d(TAG, view.toString());
-        }
     }
 
     @Override
@@ -124,6 +121,11 @@ public class TileLayout extends ViewGroup {
             //Log.d(TAG, clipped + ": " + canvas.getClipBounds() + view.toString());
             canvas.restoreToCount(savepoint);
         }
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        /* no need to layout here, already done during tile creation */
     }
 
     /**
@@ -155,11 +157,9 @@ public class TileLayout extends ViewGroup {
      * @param child the tile to be added to the layout hierarchy
      */
     private void insertTileAtPoint(View child, Point point) {
-        child.measure(MeasureSpec.makeMeasureSpec(mTileWidth, MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(mTileHeight, MeasureSpec.EXACTLY));
-        child.layout(point.x, point.y, point.x+mTileWidth, point.y+mTileHeight);
+        measureAndLayoutTile(child, point);
         replaceTileAtPoint(child, point);
-        invalidate(point.x, point.y, point.x + mTileWidth, point.y + mTileHeight);
+        invalidateTile(child, point);
     }
 
     private void replaceTileAtPoint(View tile, Point point) {
@@ -213,9 +213,7 @@ public class TileLayout extends ViewGroup {
     }
 
     private void relayoutTiles() {
-        requestScreenTiles(-mTileWidth, -mTileHeight, getWidth()-mTileWidth, getHeight()-mTileHeight);
-        layoutTiles();
-        invalidate();
+
     }
 
     private void addNewTiles(int dx, int dy) {
