@@ -194,32 +194,37 @@ public class TileLayout extends ViewGroup {
                 int dx = x - mStartTouch.x;
                 int dy = y - mStartTouch.y;
 
-                if (dx <= mTileWidth/2) dx = 0;
-                else if (dx > mTileWidth/2) dx = mTileWidth;
+                if (Math.abs(dx) <= mTileWidth/2) dx = 0;
+                else if (Math.abs(dx) > mTileWidth/2) dx = (dx > 0)? mTileWidth: -mTileWidth;
 
-                if (dy <= mTileHeight/2) dy = 0;
-                else if (dy > mTileHeight/2) dy = mTileHeight;
+                if (Math.abs(dy) <= mTileHeight/2) dy = 0;
+                else if (Math.abs(dy) > mTileHeight/2) dy = (dy > 0)? mTileHeight: -mTileHeight;
 
                 mOrigin.x = mOriginTouchDown.x + dx;
                 mOrigin.y = mOriginTouchDown.y + dy;
 
-                relayoutTiles();
+                if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+                    mStartTouch = new Point(x, y);
+                    mOriginTouchDown = new Point(mOrigin);
+                    relayoutTiles();
+                }
                 break;
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                int dx1 = x - mStartTouch.x;
-                int dy1 = y - mStartTouch.y;
-                addNewTiles(dx1, dy1);
-                removeOldTiles(dx1, dy1);
+
                 break;
         }
         Log.d(TAG, mOrigin.toString());
-        return false;
+        return true;
     }
 
     private void relayoutTiles() {
-
+        for (View view: mTileViews) {
+            Point p = (Point) view.getTag();
+            measureAndLayoutTile(view, p);
+            invalidateTile(view, p);
+        }
     }
 
     private void addNewTiles(int dx, int dy) {
