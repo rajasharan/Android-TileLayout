@@ -5,7 +5,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
-import android.text.TextPaint;
 import android.view.View;
 
 import com.rajasharan.tilelayout.adapters.api.AsyncAdapter;
@@ -25,11 +24,11 @@ public class SimpleTileAdapter extends AsyncAdapter<Point> {
     private Context mContext;
 
     public SimpleTileAdapter(Context context) {
-        this(context, null);
+        this(context, null, SIMULATION_DELAY_MILLIS);
     }
 
-    public SimpleTileAdapter(Context context, OnViewAvailableListener listener) {
-        super(listener, SIMULATION_DELAY_MILLIS);
+    public SimpleTileAdapter(Context context, OnViewAvailableListener listener, int delay) {
+        super(listener, delay);
         mContext = context;
     }
 
@@ -59,9 +58,9 @@ public class SimpleTileAdapter extends AsyncAdapter<Point> {
     private static class TileView extends View {
         private static final int SKY_BLUE = Color.rgb(135, 206, 250);
         private Paint mBorderPaint;
-        private TextPaint mTextPaint;
         private Paint mLoadingPaint;
         private Integer mHascode;
+        private int mScore;
 
         public TileView(Context context, int x, int y) {
             super(context);
@@ -73,15 +72,16 @@ public class SimpleTileAdapter extends AsyncAdapter<Point> {
             mBorderPaint.setStyle(Paint.Style.STROKE);
             mBorderPaint.setColor(Color.LTGRAY);
 
-            mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-            mTextPaint.setStyle(Paint.Style.STROKE);
-            mTextPaint.setColor(Color.BLACK);
-
             mLoadingPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             mLoadingPaint.setStyle(Paint.Style.STROKE);
 
-            if (x == Integer.MIN_VALUE || y == Integer.MIN_VALUE) mHascode = null;
-            else mHascode = 31 * x + y;
+            if (x == Integer.MIN_VALUE || y == Integer.MIN_VALUE) {
+                mHascode = null;
+            }
+            else {
+                mHascode = 31 * x + y;
+                mScore = (mHascode/3) % 255;
+            }
         }
 
         @Override
@@ -98,7 +98,7 @@ public class SimpleTileAdapter extends AsyncAdapter<Point> {
                 canvas.drawLine(r-w/4, t+h/4, l+w/4, b-h/4, mLoadingPaint);
                 //canvas.drawCircle(l + w/2, t + h/2, w/4, mLoadingPaint);
             } else {
-                canvas.drawColor(SKY_BLUE);
+                canvas.drawColor(Color.argb(mScore, mScore, mScore, mScore));
             }
         }
     }

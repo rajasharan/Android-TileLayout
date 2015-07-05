@@ -3,7 +3,6 @@ package com.rajasharan.tilelayout;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -12,17 +11,20 @@ import android.view.ViewGroup;
 
 import com.rajasharan.tilelayout.adapters.api.AsyncAdapter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by rajasharan on 7/2/15.
  */
 public class TileLayout extends ViewGroup {
     private static final String TAG = "TileLayout";
-    private static final String NEW_TILE = "NEW-TILE";
 
     private int mTileWidth;
     private int mTileHeight;
     private AsyncAdapter<Point> mAdapter;
-    //private List<View> mTileViews;
+    private List<View> mTileViews;
+    private List<View> mOffscreenViews;
     private Point mOrigin;
     private Point mOriginTouchDown;
     private Point mStartTouch;
@@ -45,7 +47,8 @@ public class TileLayout extends ViewGroup {
         mOrigin = new Point(0, 0);
         mStartTouch = null;
         mScreenTilesRequested = false;
-        //mTileViews = new ArrayList<>();
+        mTileViews = new ArrayList<>();
+        mOffscreenViews = new ArrayList<>();
     }
 
     /**
@@ -55,20 +58,15 @@ public class TileLayout extends ViewGroup {
         if (mScreenTilesRequested) {
             return;
         }
-
         int x = left;
         int y = top;
-        //removeAllViews();
         //mTileViews.clear();
-
+        int i=0;
         while (y < bottom) {
             while (x < right) {
                 Point p = new Point(x, y);
                 View tile = mAdapter.getView(p);
-                tile.setTag(p);
-                //Log.d(TAG, p.toString() + " -> " + tile.toString());
-                addView(tile);
-                //mTileViews.add(tile);
+                mTileViews.add(tile);
                 x = x + mTileWidth;
             }
             x = left;
@@ -89,11 +87,9 @@ public class TileLayout extends ViewGroup {
         setMeasuredDimension(width, height);
         requestScreenTiles(0, 0, width, height);
 
-        Log.d(TAG, "onMeasure: getChildCount(): " + getChildCount());
+        //Log.d(TAG, "onMeasure: getChildCount(): " + getChildCount());
 
-        for (int i=0; i<getChildCount(); i++) {
-            View view = getChildAt(i);
-        //for(View view: mTileViews) {
+        for(View view: mTileViews) {
             view.measure(MeasureSpec.makeMeasureSpec(mTileWidth, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(mTileHeight, MeasureSpec.EXACTLY));
         }
@@ -101,17 +97,16 @@ public class TileLayout extends ViewGroup {
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        if (!changed) {
+            return;
+        }
         layoutTiles();
-        //invalidate();
-        Log.d(TAG, this.toString());
+        //Log.d(TAG, String.format("onLayout(%s): %s", changed, this.toString()));
     }
 
     private void layoutTiles() {
-        Log.d(TAG, "onLayout: getChildCount(): " + getChildCount());
-
-        for (int i=0; i<getChildCount(); i++) {
-            View view = getChildAt(i);
-        //for (View view: mTileViews) {
+        //Log.d(TAG, "layoutTiles: getChildCount(): " + getChildCount());
+        for (View view: mTileViews) {
             Point p = (Point) view.getTag();
             view.layout(p.x, p.y, p.x+mTileWidth, p.y+mTileHeight);
             //Log.d(TAG, view.toString());
@@ -120,22 +115,15 @@ public class TileLayout extends ViewGroup {
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
-        Log.d(TAG, "dispatchDraw: getChildCount(): " + getChildCount());
-
-        //super.dispatchDraw(canvas);
-        for (int i=0; i<getChildCount(); i++) {
-            View view = getChildAt(i);
+        //Log.d(TAG, "dispatchDraw: getChildCount(): " + getChildCount());
+        for (View view: mTileViews) {
             Point p = (Point) view.getTag();
             int savepoint = canvas.save();
-            Rect r = new Rect(p.x, p.y, p.x+mTileWidth, p.y+mTileHeight);
-            boolean clipped = canvas.clipRect(r);
+            boolean clipped = canvas.clipRect(p.x, p.y, p.x+mTileWidth, p.y+mTileHeight);
             view.draw(canvas);
+            //Log.d(TAG, clipped + ": " + canvas.getClipBounds() + view.toString());
             canvas.restoreToCount(savepoint);
-            Log.d(TAG, String.format("dispatchDraw: clippedRect: %s, Rect: %s", clipped, r));
         }
-        /*for (View view: mTileViews) {
-            view.draw(canvas);
-        }*/
     }
 
     /**
@@ -169,43 +157,21 @@ public class TileLayout extends ViewGroup {
     private void insertTileAtPoint(View child, Point point) {
         child.measure(MeasureSpec.makeMeasureSpec(mTileWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(mTileHeight, MeasureSpec.EXACTLY));
-
         child.layout(point.x, point.y, point.x+mTileWidth, point.y+mTileHeight);
         replaceTileAtPoint(child, point);
-
-        //invalidate(point.x, point.y, point.x + mTileWidth, point.y + mTileHeight);
-        //Log.d(NEW_TILE, child.toString());
+        invalidate(point.x, point.y, point.x + mTileWidth, point.y + mTileHeight);
     }
 
     private void replaceTileAtPoint(View tile, Point point) {
-        View view = null;
-
-        for (int i=0; i<getChildCount(); i++) {
-            view = findViewWithTag(point);
-            if (view != null) {
-                break;
-            }
-        }
-        if (view != null) {
-            removeView(view);
-        }
-        tile.setTag(point);
-        addView(tile);
-
-        /*for (int i=0; i<mTileViews.size(); i++) {
-            view = mTileViews.get(i);
+        for (int i=0; i<mTileViews.size(); i++) {
+            View view = mTileViews.get(i);
             Point p = (Point) view.getTag();
             if (p.equals(point)) {
+                mTileViews.remove(view);
                 break;
             }
         }
-
-        if (view != null) {
-            mTileViews.remove(view);
-        }*/
-
-        //tile.setTag(point);
-        //mTileViews.add(tile);
+        mTileViews.add(tile);
     }
 
     @Override

@@ -2,7 +2,7 @@
 An android layout to load Tiles asynchronously using [AsyncAdapter](/library/src/main/java/com/rajasharan/tilelayout/adapters/api/AsyncAdapter.java) along with sample implementation of a simple 2D layer extending [AsyncAdapter&lt;Point&gt;](/library/src/main/java/com/rajasharan/tilelayout/adapters/SimpleTileAdapter.java)
 
 ## Demo
-![](/screencast.gif)
+![](screencast.gif)
 
 ## Usage
 [MainActivity.java](/demo/src/main/java/com/rajasharan/demo/MainActivity.java)
