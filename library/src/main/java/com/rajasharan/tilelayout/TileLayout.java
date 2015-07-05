@@ -51,21 +51,31 @@ public class TileLayout extends ViewGroup {
         mOffscreenViews = new ArrayList<>();
     }
 
-    private void measureAndLayoutTile(View child, Point tag) {
-        child.measure(MeasureSpec.makeMeasureSpec(mTileWidth, MeasureSpec.EXACTLY),
+    private void measureAndLayoutTile(View view, Point tag) {
+        view.measure(MeasureSpec.makeMeasureSpec(mTileWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(mTileHeight, MeasureSpec.EXACTLY));
 
         int l = tag.x + mOrigin.x;
         int t = tag.y + mOrigin.y;
 
-        child.layout(l, t, l+mTileWidth, t+mTileHeight);
+        view.layout(l, t, l+mTileWidth, t+mTileHeight);
     }
 
-    private void invalidateTile(View child, Point tag) {
+    private void invalidateTile(View view, Point tag) {
         int l = tag.x + mOrigin.x;
         int t = tag.y + mOrigin.y;
 
         invalidate(l, t, l+mTileHeight, t+mTileHeight);
+    }
+
+    private void drawTile(Canvas canvas, View view, Point tag) {
+        int l = tag.x + mOrigin.x;
+        int t = tag.y + mOrigin.y;
+        int savepoint = canvas.save();
+        boolean clipped = canvas.clipRect(l, t, l+mTileWidth, t+mTileHeight);
+        view.draw(canvas);
+        //Log.d(TAG, clipped + ": " + canvas.getClipBounds() + view.toString());
+        canvas.restoreToCount(savepoint);
     }
 
     /**
@@ -115,11 +125,7 @@ public class TileLayout extends ViewGroup {
         //Log.d(TAG, "dispatchDraw: getChildCount(): " + getChildCount());
         for (View view: mTileViews) {
             Point p = (Point) view.getTag();
-            int savepoint = canvas.save();
-            boolean clipped = canvas.clipRect(p.x, p.y, p.x+mTileWidth, p.y+mTileHeight);
-            view.draw(canvas);
-            //Log.d(TAG, clipped + ": " + canvas.getClipBounds() + view.toString());
-            canvas.restoreToCount(savepoint);
+            drawTile(canvas, view, p);
         }
     }
 
